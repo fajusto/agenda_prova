@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../models/contact.dart';
 
@@ -14,18 +15,16 @@ class _ContactsPageState extends State<ContactsPage> {
   TextEditingController phoneController = TextEditingController();
   TextEditingController searchController = TextEditingController();
   List<Contact> contacts = [];
-  List<Contact> allContacts = [];
 
   searchContact(v) {
     setState(() {
-      contacts = allContacts
+      contacts = contacts
           .where((element) => element.name!.toLowerCase().contains(v.toLowerCase()))
           .toList();
     });
-    print(contacts.length);
   }
 
-  Future<bool> showContactDialog() async {
+  Future<bool> showContactDialog(index) async {
     bool result = false;
     await showDialog(
         context: context,
@@ -74,8 +73,8 @@ class _ContactsPageState extends State<ContactsPage> {
     return result;
   }
 
-  saveContact() async {
-    bool result = await showContactDialog();
+  saveEditContact(index) async {
+    bool result = await showContactDialog(null);
     if (result == true) {
       setState(() {
         Contact contact = Contact(
@@ -83,9 +82,43 @@ class _ContactsPageState extends State<ContactsPage> {
           phone: phoneController.text,
         );
         contacts.add(contact);
-        allContacts.add(contact);
         nameController.clear();
         phoneController.clear();
+      });
+    }
+  }
+
+  deleteContact(index) async {
+    bool keepOn = false;
+    await showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Deletar'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text('Tem certeza que deseja deletar esse contato?')
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancelar')),
+              ElevatedButton(
+                  onPressed: () {
+                    keepOn = true;
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Sim')),
+            ],
+          );
+        });
+    if (keepOn == true) {
+      setState(() {
+        contacts.removeAt(index);
       });
     }
   }
@@ -125,9 +158,25 @@ class _ContactsPageState extends State<ContactsPage> {
             child: ListView.builder(
                 itemCount: contacts.length,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(contacts[index].name!),
-                    subtitle: Text(contacts[index].phone!),
+                  return Slidable(
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      children: [
+                        SlidableAction(
+                          onPressed: (context) {
+                            deleteContact(index);
+                          },
+                          backgroundColor: const Color(0xFFFE4A49),
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete,
+                          label: 'Delete',
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      title: Text(contacts[index].name!),
+                      subtitle: Text(contacts[index].phone!),
+                    ),
                   );
                 }),
           ),
@@ -135,7 +184,7 @@ class _ContactsPageState extends State<ContactsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          saveContact();
+          saveEditContact(null);
         },
         child: const Icon(Icons.add),
       ),
