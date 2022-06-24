@@ -11,26 +11,35 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
+  int? id;
   TextEditingController nameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
   TextEditingController searchController = TextEditingController();
+  List<Contact> allContacts = [];
   List<Contact> contacts = [];
 
   searchContact(v) {
     setState(() {
-      contacts = contacts
-          .where((element) => element.name!.toLowerCase().contains(v.toLowerCase()))
+      contacts = allContacts
+          .where((element) =>
+              element.name!.toLowerCase().contains(v.toLowerCase()))
           .toList();
     });
   }
 
   Future<bool> showContactDialog(index) async {
     bool result = false;
+    if (index != null) {
+      Contact contact = contacts[index];
+      id = contact.id!;
+      nameController.text = contact.name!;
+      phoneController.text = contact.phone!;
+    }
     await showDialog(
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: const Text('Adicionar contato'),
+            title: Text('${index != null ? 'Editar' : 'Adicionar'} contato'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -74,17 +83,28 @@ class _ContactsPageState extends State<ContactsPage> {
   }
 
   saveEditContact(index) async {
-    bool result = await showContactDialog(null);
+    bool result = await showContactDialog(index);
     if (result == true) {
       setState(() {
         Contact contact = Contact(
+          id: id ?? allContacts.length + 1,
           name: nameController.text,
           phone: phoneController.text,
         );
-        contacts.add(contact);
-        nameController.clear();
-        phoneController.clear();
+        if (index == null) {
+          allContacts.add(contact);
+          contacts.add(contact);
+        } else {
+          Contact con =
+              allContacts.where((element) => element.id == contact.id).first;
+          con.name = nameController.text;
+          con.phone = phoneController.text;
+        }
       });
+
+      id = null;
+      nameController.clear();
+      phoneController.clear();
     }
   }
 
@@ -170,6 +190,15 @@ class _ContactsPageState extends State<ContactsPage> {
                           foregroundColor: Colors.white,
                           icon: Icons.delete,
                           label: 'Delete',
+                        ),
+                        SlidableAction(
+                          onPressed: (context) {
+                            saveEditContact(index);
+                          },
+                          backgroundColor: Colors.grey,
+                          foregroundColor: Colors.white,
+                          icon: Icons.edit,
+                          label: 'Edit',
                         ),
                       ],
                     ),
